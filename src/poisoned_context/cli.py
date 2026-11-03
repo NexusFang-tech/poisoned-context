@@ -35,6 +35,9 @@ def main(argv=None) -> int:
     p.add_argument("--out-dir", type=Path)
     q = sub.add_parser("review", help="export replies that need a human decision")
     q.add_argument("results", type=Path)
+    x = sub.add_parser("rescore", help="re-apply the scorer to saved replies without any API calls")
+    x.add_argument("results", type=Path)
+    x.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
 
     if a.cmd == "run":
@@ -56,6 +59,10 @@ def main(argv=None) -> int:
                 print(f"{i}/{n} done, {st['api_errors']} API errors", flush=True)
         st = runner.run(trials, client, a.out, a.seed, a.max_requests, progress)
         print(json.dumps(st))
+    elif a.cmd == "rescore":
+        rows = runner.rescore_rows(report.load(a.results))
+        a.out.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+        print(f"Rescored {len(rows)} rows into {a.out}. Replies awaiting review: {sum(1 for r in rows if r.get('needs_review'))}.")
     elif a.cmd == "review":
         rows = [r for r in report.load(a.results) if r.get("needs_review")]
         path = _review_path(a.results)

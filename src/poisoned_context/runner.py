@@ -112,3 +112,16 @@ def estimate_tokens(trials: list[Trial], seed: int) -> tuple[int, int]:
     sample = trials[:: max(1, len(trials) // 50)]
     avg = sum(len(build_prompt(t, seed)["system"]) + 300 for t in sample) / max(1, len(sample)) / 4
     return int(avg * len(trials)), 120 * len(trials)
+
+
+def rescore_rows(rows: list[dict]) -> list[dict]:
+    """Apply the current scorer to saved replies. Sends nothing to the API."""
+    out = []
+    for row in rows:
+        row = dict(row)
+        if not row.get("api_error"):
+            t = Trial(row["model"], row["defense"], row["style"], row["goal"], row["placement"], row["repeat"])
+            p = build_prompt(t, row["seed"])
+            row.update(scoring.score(t.goal, p["canary"], p["correct_phone"], row["text"], row["tool_calls"]).to_dict())
+        out.append(row)
+    return out

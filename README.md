@@ -38,6 +38,12 @@ Control trials use no payload, which measures normal accuracy and false alarms.
 
 Rates use 95% Wilson intervals, and defense comparisons use Newcombe intervals. Trials in a condition share one template, so the intervals understate uncertainty about attacks in general.
 
+## Changes after the pilot
+
+The pilot was used only to test the method, and its data is never pooled with final results.
+
+- **Scorer fix:** the first scorer treated "I ignored it" as no warning. A reply that quoted a canary while refusing it could be counted as compliance, and most false-number refusals went to human review. It now recognizes explicit refusals when the correct answer comes first, and still sends unclear replies to a person.
+
 ## Limitations
 
 - The payloads are simple and hand-written, so low success here doesn't show robustness against an adaptive attacker.
