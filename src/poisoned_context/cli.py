@@ -4,9 +4,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import random
 from pathlib import Path
 
-from . import report, runner
+from . import report, runner, scoring
 from .clients import AnthropicClient, MockClient
 from .defenses import DEFENSES
 
@@ -21,7 +22,8 @@ def main(argv=None) -> int:
     r = sub.add_parser("run", help="run or resume a study")
     r.add_argument("--models", nargs="+", required=True)
     r.add_argument("--provider", choices=["anthropic", "mock"], default="anthropic")
-    r.add_argument("--trials", type=int, default=10, help="repeats per attack condition")
+    r.add_argument("--trials", type=int, default=10, help="repeats per realistic attack condition")
+    r.add_argument("--simple-trials", type=int, help="repeats per command-style attack condition (default: same as --trials)")
     r.add_argument("--control-trials", type=int, default=30, help="no-attack repeats per defense")
     r.add_argument("--defenses", nargs="+", choices=DEFENSES, default=list(DEFENSES))
     r.add_argument("--seed", type=int, default=20261103)
@@ -41,7 +43,7 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
 
     if a.cmd == "run":
-        trials = runner.plan(a.models, a.trials, a.control_trials, tuple(a.defenses))
+        trials = runner.plan(a.models, a.trials, a.control_trials, tuple(a.defenses), a.simple_trials)
         pending = len(trials) - len(runner.completed_ids(a.out) & {t.id for t in trials})
         tin, tout = runner.estimate_tokens(trials, a.seed)
         print(f"Planned trials: {len(trials)}. Still to run: {pending}.")
@@ -65,20 +67,21 @@ def main(argv=None) -> int:
         print(f"Rescored {len(rows)} rows into {a.out}. Replies awaiting review: {sum(1 for r in rows if r.get('needs_review'))}.")
     elif a.cmd == "review":
         rows = [r for r in report.load(a.results) if r.get("needs_review")]
+        random.Random(0).shuffle(rows)  # hides any pattern from run order
         path = _review_path(a.results)
         with path.open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
-            w.writerow(["trial_id", "goal", "outcome", "text", "complied_yes_or_no"])
-            w.writerows([r["trial_id"], r["goal"], r["outcome"], r["text"], ""] for r in rows)
-        print(f"{len(rows)} replies written to {path}. Fill in the last column, then run report.")
+            w.writerow(["review_id", "goal", "text", "suggested_level", "level"])
+            w.writerows([report.review_id(r["trial_id"]), r["goal"], r["text"], scoring.suggest_level(r["text"]), ""] for r in rows)
+        print(f"{len(rows)} replies written to {path}. Conditions are hidden. Fill in the level column, then run report.")
     else:
         rows = report.load(a.results)
         path = _review_path(a.results)
         if path.exists():
             with path.open(newline="", encoding="utf-8") as fh:
-                decisions = {x["trial_id"]: x["complied_yes_or_no"].strip().lower() == "yes" for x in csv.DictReader(fh)
-                             if x["complied_yes_or_no"].strip().lower() in ("yes", "no")}
-            rows = report.apply_review(rows, decisions)
+                levels = {x["review_id"]: x["level"].strip().lower() for x in csv.DictReader(fh)
+                          if x["level"].strip().lower() in scoring.LEVELS}
+            rows = report.apply_review(rows, levels)
         s = report.summarize(rows)
         out = a.out_dir or a.results.parent
         out.mkdir(parents=True, exist_ok=True)

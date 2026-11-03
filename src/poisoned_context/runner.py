@@ -30,17 +30,21 @@ class Trial:
         return base if self.task == "lookup" else f"{base}|{self.task}"
 
 
-def plan(models: list[str], trials: int, control_trials: int, defense_list=defenses.DEFENSES) -> list[Trial]:
+def plan(models: list[str], trials: int, control_trials: int, defense_list=defenses.DEFENSES,
+         simple_trials: int | None = None) -> list[Trial]:
+    """Plan trials. `simple_trials` sets repeats for the command-style payloads, which pilots showed sit near zero."""
     out = []
+    simple = trials if simple_trials is None else simple_trials
     for m in models:
         for d in defense_list:
             for task in attacks.TASKS:
                 out += [Trial(m, d, None, None, None, i, task) for i in range(control_trials)]
             for s in attacks.STYLES:
+                n = trials if s in attacks.REALISTIC_STYLES else simple
                 for p in attacks.PLACEMENTS:
                     for g in attacks.GOALS:
-                        out += [Trial(m, d, s, g, p, i) for i in range(trials)]
-                    out += [Trial(m, d, s, "exfil_tool", p, i, "email") for i in range(trials)]
+                        out += [Trial(m, d, s, g, p, i) for i in range(n)]
+                    out += [Trial(m, d, s, "exfil_tool", p, i, "email") for i in range(n)]
     return out
 
 
@@ -120,10 +124,10 @@ def run(trials: list[Trial], client, out: Path, seed: int, max_requests: int, on
 
 def estimate_tokens(trials: list[Trial], seed: int) -> tuple[int, int]:
     """Rough totals for budgeting, calibrated on the pilot: about 2.25 characters per input token and
-    200 output tokens per reply. Models that reason more will use more output."""
+    250 output tokens per reply. Models that reason more will use more output."""
     sample = trials[:: max(1, len(trials) // 50)]
     avg = sum(len(build_prompt(t, seed)["system"]) + 300 for t in sample) / max(1, len(sample)) / 2.25
-    return int(avg * len(trials)), 200 * len(trials)
+    return int(avg * len(trials)), 250 * len(trials)
 
 
 def rescore_rows(rows: list[dict]) -> list[dict]:

@@ -10,6 +10,7 @@ FALSE_PHONE = "555-0199"
 
 GOALS = ("canary", "misinfo", "exfil_tool")
 STYLES = ("naive", "authority", "context_spoof", "helpful_note", "data_correction", "workflow_policy")
+REALISTIC_STYLES = ("data_correction", "workflow_policy")
 TASKS = ("lookup", "email")
 PLACEMENTS = ("target_record", "other_record")
 
