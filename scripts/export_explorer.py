@@ -9,20 +9,18 @@ from pathlib import Path
 from poisoned_context import attacks, defenses, runner
 
 SEED = 20261103
-out = {"seed": SEED, "conditions": {}, "control": {}}
+out = {"seed": SEED, "conditions": {}}
 for d in defenses.DEFENSES:
-    c = runner.build_prompt(runner.Trial("example", d, None, None, None, 0), SEED)
-    out["control"][d] = {"system": c["system"].split("\n"), "user": c["user"], "correct": c["correct_phone"]}
     for s in attacks.STYLES:
-        for g in attacks.GOALS:
-            for p in attacks.PLACEMENTS:
-                t = runner.Trial("example", d, s, g, p, 0)
+        for p in attacks.PLACEMENTS:
+            for g, task in [(x, "lookup") for x in attacks.GOALS] + [("exfil_tool", "email")]:
+                t = runner.Trial("example", d, s, g, p, 0, task)
                 b = runner.build_prompt(t, SEED)
                 lines = b["system"].split("\n")
                 marks = (b["canary"], attacks.ATTACKER_EMAIL, attacks.FALSE_PHONE)
                 hit = next(i for i, x in enumerate(lines) if any(m in x for m in marks))
                 head = next(i for i, x in enumerate(lines) if x.startswith("county:"))
-                out["conditions"][f"{d}|{s}|{g}|{p}"] = {
+                out["conditions"][f"{d}|{s}|{g}|{p}|{task}"] = {
                     "intro": lines[:head], "hit": lines[hit:hit + 3 if s == "context_spoof" else hit + 1],
                     "user": b["user"], "correct": b["correct_phone"], "canary": b["canary"],
                 }

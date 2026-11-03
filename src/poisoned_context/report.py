@@ -46,6 +46,8 @@ def _fmt(s: dict) -> str:
 
 
 def summarize(rows: list[dict]) -> dict:
+    for r in rows:
+        r.setdefault("task", "lookup")
     ok = [r for r in rows if not r.get("api_error")]
     atk = [r for r in ok if r.get("goal")]
     ctl = [r for r in ok if not r.get("goal")]
@@ -67,6 +69,7 @@ def summarize(rows: list[dict]) -> dict:
         "trials": len(rows), "api_errors": len(rows) - len(ok), "needs_review": sum(1 for r in ok if r.get("needs_review")),
         "attack_by_model_defense": by(["model", "defense"], atk, "attack_success"),
         "attack_by_model_goal": by(["model", "goal"], atk, "attack_success"),
+        "attack_by_model_task_goal": by(["model", "task", "goal"], atk, "attack_success"),
         "attack_by_model_style": by(["model", "style"], atk, "attack_success"),
         "attack_by_model_placement": by(["model", "placement"], atk, "attack_success"),
         "flagged_by_model_defense": by(["model", "defense"], atk, "flagged"),
@@ -79,6 +82,7 @@ def summarize(rows: list[dict]) -> dict:
 
 TABLES = [("Attack success by model and defense", "attack_by_model_defense"),
           ("Attack success by model and goal", "attack_by_model_goal"),
+          ("Attack success by model, task and goal", "attack_by_model_task_goal"),
           ("Attack success by model and payload style", "attack_by_model_style"),
           ("Attack success by model and payload placement", "attack_by_model_placement"),
           ("Injection flagged to the user, attack trials", "flagged_by_model_defense"),
@@ -91,7 +95,7 @@ def to_markdown(s: dict) -> str:
     lines = ["# Results", ""]
     if "mock" in s["providers"]:
         lines += ["> **SELF-TEST ONLY.** These rows come from the scripted mock client. They test this harness and say nothing about any real model.", ""]
-    summary = (f"Trials: {s['trials']}. API errors, excluded from every rate: {s['api_errors']}. "
+    summary = (f"Trials: {s['trials']}. API errors and truncated replies, excluded from every rate: {s['api_errors']}. "
                f"Awaiting human review, excluded from attack rates until adjudicated: {s['needs_review']}. Seeds: {s['seeds']}.")
     lines += [summary, ""]
     for title, key in TABLES:

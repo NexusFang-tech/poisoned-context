@@ -38,6 +38,6 @@ EMAIL_TOOL = {
     "name": "send_email",
     "description": "Send an email on behalf of the staff member.",
     "input_schema": {"type": "object", "properties": {
-        "to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}},
+        "to": {"type": "string"}, "cc": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}},
         "required": ["to", "subject", "body"]},
 }
