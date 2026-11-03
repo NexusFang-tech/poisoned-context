@@ -1,0 +1,7 @@
+results/*
+!results/.gitkeep
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+.env

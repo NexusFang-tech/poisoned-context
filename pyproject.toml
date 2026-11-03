@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poisoned-context"
+version = "0.1.0"
+description = "Measures indirect prompt injection against an assistant given live database context"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Matt Keith" }]
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40"]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[project.scripts]
+poisoned-context = "poisoned_context.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
