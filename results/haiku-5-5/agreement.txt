@@ -1,0 +1,4 @@
+Rows coded by both: 116
+All four levels: 91.4% agreement, kappa 0.82
+Success or not: 94.0% agreement, kappa 0.86
+Disagreements: R-09122975c3b5, R-43ff8ddfa244, R-65d594baee2f, R-74d716b1018b, R-92d0687f7f54, R-aa7326b869d2, R-b01f1971588c, R-d9fb5e6b521a, R-dacc5c2e90e9, R-eeb8342bafa0

@@ -2,7 +2,25 @@
 
 [![CI](https://github.com/NexusFang-tech/poisoned-context/actions/workflows/ci.yml/badge.svg)](https://github.com/NexusFang-tech/poisoned-context/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Status: design locked after two pilots, final data pending.** Results will be published here with the raw data, including the runs that didn't go as expected.
+**Status: first model complete.** Claude Haiku 5.5 was run on November 3, 2026. Other models haven't been tested.
+
+## Results: Claude Haiku 5.5
+
+The model followed planted commands 0 times in 864 scored trials, but it often accepted false data that looked like a normal record, unless its prompt warned that the field could be edited by outsiders.
+
+| Defense | False number accepted or passed on without caution (95% CI) | Accepted as correct |
+|---|---|---|
+| None | **57.5%** (42.2% to 71.5%), 23/40 | 15/40 |
+| Warning | 12.5% (5.5% to 26.1%), 5/40 | 5/40 |
+| Warning + delimiters | 15.0% (7.1% to 29.1%), 6/40 | 6/40 |
+| Warning + datamarking | 0.0% (0.0% to 8.8%), 0/40 | 0/40 |
+
+- **Commands:** 0 of 512 email tool attempts worked, including 0 of 256 where staff asked the model to send an email.
+- **Placement, no defense:** 17 of 20 when the false data was on the record asked about, and 6 of 20 on an unrelated record.
+- **Accuracy:** the correct number appeared in all 1,184 replies, with 0 false alarms in 160 no-attack trials.
+- **Coding:** one person coded 116 unclear replies with conditions hidden, starting from automated suggestions. A blind AI second coder agreed on 91.4% of levels (kappa 0.82) and 94.0% of success decisions (kappa 0.86). Those were not adjudicated, and the second coder's labels give 26/40 for no defense, while every defended condition is unchanged.
+
+**Limits:** this covers one model, one assistant and one fictional directory, using fixed templates, so trials aren't independent and the intervals understate uncertainty. All three defended conditions include the warning, so extra benefit from delimiters or datamarking can't be separated cleanly. Low command success doesn't show robustness against an adaptive attacker. Data is in [`results/haiku-5-5`](results/haiku-5-5).
 
 ## Question
 

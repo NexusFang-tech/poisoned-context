@@ -1,5 +1,6 @@
 results/*
 !results/.gitkeep
+!results/haiku-5-5/
 __pycache__/
 *.egg-info/
 .pytest_cache/
