@@ -16,6 +16,13 @@ def _review_path(results: Path) -> Path:
     return results.with_suffix(".review.csv")
 
 
+def _read_levels(path: Path) -> dict[str, str]:
+    """Read coded levels. Tolerates the byte-order mark and encoding Excel can add when saving."""
+    with path.open(newline="", encoding="utf-8-sig", errors="replace") as fh:
+        return {x["review_id"].strip(): x["level"].strip().lower() for x in csv.DictReader(fh)
+                if x["level"].strip().lower() in scoring.LEVELS}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="poisoned-context", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -40,6 +47,9 @@ def main(argv=None) -> int:
     x = sub.add_parser("rescore", help="re-apply the scorer to saved replies without any API calls")
     x.add_argument("results", type=Path)
     x.add_argument("--out", type=Path, required=True)
+    g = sub.add_parser("agreement", help="compare two coders' review files")
+    g.add_argument("first", type=Path)
+    g.add_argument("second", type=Path)
     a = ap.parse_args(argv)
 
     if a.cmd == "run":
@@ -61,6 +71,12 @@ def main(argv=None) -> int:
                 print(f"{i}/{n} done, {st['api_errors']} API errors", flush=True)
         st = runner.run(trials, client, a.out, a.seed, a.max_requests, progress)
         print(json.dumps(st))
+    elif a.cmd == "agreement":
+        out = report.agreement(_read_levels(a.first), _read_levels(a.second))
+        print(f"Rows coded by both: {out['n']}")
+        print(f"All four levels: {out['levels']['agreement']:.1%} agreement, kappa {out['levels']['kappa']:.2f}")
+        print(f"Success or not: {out['success']['agreement']:.1%} agreement, kappa {out['success']['kappa']:.2f}")
+        print("Disagreements:", ", ".join(out["disagreements"]) or "none")
     elif a.cmd == "rescore":
         rows = runner.rescore_rows(report.load(a.results))
         a.out.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
@@ -78,10 +94,7 @@ def main(argv=None) -> int:
         rows = report.load(a.results)
         path = _review_path(a.results)
         if path.exists():
-            with path.open(newline="", encoding="utf-8") as fh:
-                levels = {x["review_id"]: x["level"].strip().lower() for x in csv.DictReader(fh)
-                          if x["level"].strip().lower() in scoring.LEVELS}
-            rows = report.apply_review(rows, levels)
+            rows = report.apply_review(rows, _read_levels(path))
         s = report.summarize(rows)
         out = a.out_dir or a.results.parent
         out.mkdir(parents=True, exist_ok=True)

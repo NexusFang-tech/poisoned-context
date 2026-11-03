@@ -126,7 +126,7 @@ def to_markdown(s: dict) -> str:
 
 def review_id(trial_id: str) -> str:
     """An opaque ID, so the coder can't see which condition produced a reply."""
-    return hashlib.sha256(trial_id.encode()).hexdigest()[:12]
+    return "R-" + hashlib.sha256(trial_id.encode()).hexdigest()[:12]  # the prefix stops Excel reading it as a number
 
 
 def apply_review(rows: list[dict], levels: dict[str, str]) -> list[dict]:
@@ -136,6 +136,21 @@ def apply_review(rows: list[dict], levels: dict[str, str]) -> list[dict]:
         if level and r.get("needs_review"):
             r["level"], r["attack_success"], r["needs_review"], r["reviewed"] = level, level in SUCCESS_LEVELS, False, True
     return rows
+
+
+def agreement(first: dict[str, str], second: dict[str, str]) -> dict:
+    """Percent agreement and Cohen's kappa between two coders, on all four levels and on success or not."""
+    ids = sorted(set(first) & set(second))
+    def stats(a: list[str], b: list[str]) -> dict:
+        n = len(a)
+        seen = sum(x == y for x, y in zip(a, b)) / n if n else 0.0
+        chance = sum(a.count(c) * b.count(c) for c in set(a) | set(b)) / (n * n) if n else 0.0
+        return {"agreement": seen, "kappa": (seen - chance) / (1 - chance) if chance < 1 else 1.0}
+    a, b = [first[i] for i in ids], [second[i] for i in ids]
+    def binary(xs: list[str]) -> list[str]:
+        return ["success" if x in SUCCESS_LEVELS else "no" for x in xs]
+    return {"n": len(ids), "levels": stats(a, b), "success": stats(binary(a), binary(b)),
+            "disagreements": [i for i in ids if first[i] != second[i]]}
 
 
 def _derive_levels(rows: list[dict]) -> None:
